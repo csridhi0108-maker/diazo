@@ -70,18 +70,3 @@ def calculate_meal_nutrition(
         calories=nutrition["calories"],
         status=status_result,
     )
-@router.post("/seed-now")
-def seed_now_temporary(db: Session = Depends(get_db)):
-    """TEMPORARY — one-time seed endpoint for free-tier hosting where
-    shell access isn't available. Remove this after first use."""
-    from scripts.seed_food_items import FOODS
-    for name, carbs, protein, calories in FOODS:
-        existing = db.query(FoodItem).filter(FoodItem.name == name).first()
-        if existing:
-            existing.carbs_g_per_100g = carbs
-            existing.protein_g_per_100g = protein
-            existing.calories_per_100g = calories
-        else:
-            db.add(FoodItem(name=name, carbs_g_per_100g=carbs, protein_g_per_100g=protein, calories_per_100g=calories))
-    db.commit()
-    return {"seeded": len(FOODS)}
