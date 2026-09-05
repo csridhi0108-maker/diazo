@@ -41,3 +41,4 @@ fpdf2==2.7.9
 # Testing (Highly recommended for backend stability)
 pytest==8.3.3
 pytest-asyncio==0.24.0
+reportlab
