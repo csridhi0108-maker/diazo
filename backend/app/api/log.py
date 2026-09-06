@@ -18,6 +18,7 @@ from app.models.meal_log import MealLog
 from app.models.glucose_log import GlucoseLog
 from app.models.activity_log import ActivityLog
 from app.models.food_item import FoodItem
+from app.models.scale_status import ScaleStatus
 from app.schemas.log import (
     MealLogCreate, MealLogOut,
     GlucoseLogCreate, GlucoseLogOut,
@@ -38,20 +39,15 @@ async def create_meal_log(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Only patients log their own meals — writes are never delegated
-    # to a caregiver/doctor, matching the read-only access rule.
     if current_user.role != UserRole.patient:
         raise HTTPException(status_code=403, detail="Only patients can log meals")
 
     data = payload.model_dump()
     food_id = data.pop("food_id")
     weight_g = data.pop("weight_g")
+    device_id = data.pop("device_id")
 
     if food_id is not None and weight_g is not None:
-        # Meal-scale flow: recompute from the reference table rather
-        # than trusting whatever the client sent for carbs/calories —
-        # the frontend only ever showed a preview, this is the
-        # authoritative calculation.
         food = db.query(FoodItem).filter(FoodItem.id == food_id).first()
         if food is None:
             raise HTTPException(status_code=404, detail="Food not found")
@@ -62,8 +58,6 @@ async def create_meal_log(
         data["estimated_calories"] = nutrition["calories"]
         data["nutrition_status"] = evaluate_target_status(db, current_user.id, nutrition["carbs_g"])
 
-        # Keep a human-readable record in food_items too, same shape
-        # the frontend already renders in meal history.
         data["food_items"] = [{
             "name": food.name,
             "measured_weight_g": weight_g,
@@ -71,35 +65,34 @@ async def create_meal_log(
             "protein_g": nutrition["protein_g"],
         }]
 
+        # Push the resulting GREEN/RED signal to the physical scale so its
+        # LED reflects this meal's evaluation. Only possible when the
+        # frontend told us which device this reading came from.
+        if device_id is not None:
+            led_status = {
+                "WITHIN_TARGET": "GREEN",
+                "ABOVE_TARGET": "RED",
+            }.get(data["nutrition_status"], "PENDING")
+
+            scale_status = db.query(ScaleStatus).filter(ScaleStatus.device_id == device_id).first()
+            if scale_status is None:
+                scale_status = ScaleStatus(device_id=device_id, patient_id=current_user.id, status=led_status)
+                db.add(scale_status)
+            else:
+                scale_status.status = led_status
+                scale_status.patient_id = current_user.id
+
     log = MealLog(patient_id=current_user.id, scale_food_id=food_id, **data)
     db.add(log)
     db.commit()
     db.refresh(log)
 
-    # Notify linked caregivers/doctors — the "Mom just had lunch ✅"
-    # reassurance feature from the original spec.
     await notify_linked_caregivers(
         db, current_user.id, NotificationType.meal_logged,
         f"Patient logged a {log.meal_type}.",
     )
 
     return log
-
-
-@router.get("/meals/{patient_id}", response_model=list[MealLogOut])
-def list_meal_logs(
-    patient_id: uuid.UUID = Depends(get_authorized_patient_id),
-    db: Session = Depends(get_db),
-):
-    # get_authorized_patient_id already confirmed the caller is either
-    # this patient themself or an approved caregiver/doctor — no
-    # further permission check needed here.
-    return (
-        db.query(MealLog)
-        .filter(MealLog.patient_id == patient_id)
-        .order_by(MealLog.timestamp.desc())
-        .all()
-    )
 
 
 # ---------- Glucose logs ----------

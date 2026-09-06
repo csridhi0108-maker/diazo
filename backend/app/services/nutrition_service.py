@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from app.models.ai_plan import AIPlan
 from app.models.food_item import FoodItem
 from app.models.meal_log import MealLog
+from app.models.scale_status import ScaleStatus
 
 
 def calculate_nutrition(food: FoodItem, weight_g: float) -> dict:

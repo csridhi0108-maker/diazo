@@ -1,6 +1,11 @@
+
+
+
+
 """Contracts for ESP32 meal-scale ingestion."""
 
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, Field
 
@@ -22,3 +27,12 @@ class MealWeightReadingOut(BaseModel):
     class Config:
         from_attributes = True
 
+
+class ScaleStatusOut(BaseModel):
+    device_id: str
+    patient_id: uuid.UUID
+    status: str
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

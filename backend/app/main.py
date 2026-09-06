@@ -15,8 +15,8 @@ from app.api import caregiver_dashboard
 # Import every model so Base.metadata knows about all tables before
 # create_all runs. Without these imports, SQLAlchemy has no way of
 # knowing these tables exist yet, even though Base is shared.
-from app.models import user, patient_profile, caregiver_link, meal_log, glucose_log, activity_log, ai_plan, recommendation, notification, report, meal_weight_reading, food_item  # noqa: F401
-from app.api import auth, patients, logs, plans, ml, caregivers, notifications_ws, dashboard, admin, reports, hardware, glucose_logs, nutrition
+from app.models import user, patient_profile, caregiver_link, meal_log, glucose_log, activity_log, ai_plan, recommendation, notification, report, meal_weight_reading, food_item, scale_status  # noqa: F401
+from app.api import auth, patients, plans, ml, caregivers, notifications_ws, dashboard, admin, reports, hardware, glucose_logs, nutrition, log
 from app.core.ws_manager import ws_router
 from app.scheduler.jobs import start_scheduler
 
@@ -41,7 +41,7 @@ app.add_middleware(
 # notifications_ws all still to come).
 app.include_router(auth.router)
 app.include_router(patients.router)
-app.include_router(logs.router)
+app.include_router(log.router)
 app.include_router(plans.router)
 app.include_router(ml.router)
 app.include_router(caregivers.router)
@@ -54,7 +54,6 @@ app.include_router(ws_router)
 app.include_router(glucose_logs.router)
 app.include_router(caregiver_dashboard.router)
 app.include_router(nutrition.router)
-
 
 
 @app.on_event("startup")

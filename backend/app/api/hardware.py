@@ -9,8 +9,9 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.ws_manager import manager
 from app.models.meal_weight_reading import MealWeightReading
+from app.models.scale_status import ScaleStatus
 from app.models.user import User, UserRole
-from app.schemas.hardware import MealWeightReadingIn, MealWeightReadingOut
+from app.schemas.hardware import MealWeightReadingIn, MealWeightReadingOut, ScaleStatusOut
 
 router = APIRouter(prefix="/api/v1/hardware", tags=["hardware"])
 
@@ -56,3 +57,16 @@ async def ingest_meal_weight_reading(payload: MealWeightReadingIn, db: Session =
         },
     )
     return reading
+
+
+@router.get(
+    "/scale-status/{device_id}",
+    response_model=ScaleStatusOut,
+    dependencies=[Depends(verify_device_key)],
+)
+async def get_scale_status(device_id: str, db: Session = Depends(get_db)):
+    """Return the current PENDING/GREEN/RED status for a given meal scale device."""
+    status_row = db.query(ScaleStatus).filter(ScaleStatus.device_id == device_id).first()
+    if status_row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
+    return status_row

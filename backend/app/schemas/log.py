@@ -26,6 +26,7 @@ class MealLogCreate(BaseModel):
     # existing behavior is unchanged.
     food_id: uuid.UUID | None = None
     weight_g: float | None = Field(default=None, gt=0, le=5000)
+    device_id: str | None = Field(default=None, min_length=3, max_length=100)
 
 
 class MealLogOut(BaseModel):
