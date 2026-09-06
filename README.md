@@ -424,15 +424,6 @@ The frontend should use the deployed Render backend URL rather than `localhost`.
 
 The backend should allow the deployed Vercel frontend origin through its CORS configuration.
 
-### Deploying this repository
-
-1. Push the repository to GitHub. The root `render.yaml` creates the Render web service with `backend/` as its root directory. Set the required secret environment variables in Render; use `backend/.env.example` as the checklist.
-2. Create a Vercel project with `frontend` as the project's Root Directory. Set `VITE_API_BASE_URL` to the Render service URL, for example `https://diazo-api.onrender.com`, then deploy.
-3. Copy the resulting Vercel URL into Render's `CORS_ORIGINS` value and redeploy the backend. If a custom domain is used, use that exact HTTPS origin instead.
-4. Open `https://<render-service>/health` to confirm the API is live, then verify login, a normal meal log, and a simulated `weight_g` scale request.
-
-On a new database, the backend creates missing tables and seeds the prototype food list on its first startup. Existing food records are not overwritten by the startup seed.
-
 Production secrets such as:
 
 ```text

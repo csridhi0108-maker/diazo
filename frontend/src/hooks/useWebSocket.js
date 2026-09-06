@@ -1,14 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { isLoggedIn } from '../api/auth'
-import { API_BASE_URL } from '../api/client'
-
-function notificationWebSocketUrl(token) {
-  const url = new URL(API_BASE_URL)
-  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-  url.pathname = `${url.pathname.replace(/\/$/, '')}/ws/notifications`
-  url.search = new URLSearchParams({ token }).toString()
-  return url.toString()
-}
 
 export function useWebSocket(onMessage) {
   const wsRef = useRef(null)
@@ -17,7 +8,7 @@ export function useWebSocket(onMessage) {
     if (!isLoggedIn()) return
 
     const token = localStorage.getItem('access_token')
-    const wsUrl = notificationWebSocketUrl(token)
+    const wsUrl = `ws://127.0.0.1:8000/ws/notifications?token=${token}`
     
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws

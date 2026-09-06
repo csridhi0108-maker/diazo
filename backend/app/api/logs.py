@@ -18,7 +18,6 @@ from app.models.meal_log import MealLog
 from app.models.glucose_log import GlucoseLog
 from app.models.activity_log import ActivityLog
 from app.models.food_item import FoodItem
-from app.models.scale_status import ScaleStatus
 from app.schemas.log import (
     MealLogCreate, MealLogOut,
     GlucoseLogCreate, GlucoseLogOut,
@@ -47,7 +46,6 @@ async def create_meal_log(
     data = payload.model_dump()
     food_id = data.pop("food_id")
     weight_g = data.pop("weight_g")
-    scale_device_id = data.pop("scale_device_id")
 
     if food_id is not None and weight_g is not None:
         # Meal-scale flow: recompute from the reference table rather
@@ -62,9 +60,7 @@ async def create_meal_log(
         data["estimated_carbs"] = nutrition["carbs_g"]
         data["estimated_protein"] = nutrition["protein_g"]
         data["estimated_calories"] = nutrition["calories"]
-        data["nutrition_status"] = evaluate_target_status(
-            db, current_user.id, nutrition["carbs_g"], nutrition["protein_g"]
-        )
+        data["nutrition_status"] = evaluate_target_status(db, current_user.id, nutrition["carbs_g"])
 
         # Keep a human-readable record in food_items too, same shape
         # the frontend already renders in meal history.
@@ -77,21 +73,6 @@ async def create_meal_log(
 
     log = MealLog(patient_id=current_user.id, scale_food_id=food_id, **data)
     db.add(log)
-
-    if scale_device_id:
-        # Store a device-specific command so a scale never sees another
-        # patient's result. Unknown targets intentionally remain PENDING.
-        led_status = {
-            "WITHIN_TARGET": "GREEN",
-            "ABOVE_TARGET": "RED",
-        }.get(log.nutrition_status, "PENDING")
-        device_status = db.get(ScaleStatus, scale_device_id)
-        if device_status is None:
-            db.add(ScaleStatus(device_id=scale_device_id, patient_id=current_user.id, status=led_status))
-        elif device_status.patient_id == current_user.id:
-            device_status.status = led_status
-        else:
-            raise HTTPException(status_code=403, detail="Scale belongs to another patient")
     db.commit()
     db.refresh(log)
 

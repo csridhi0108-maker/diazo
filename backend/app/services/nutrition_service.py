@@ -34,7 +34,7 @@ def calculate_nutrition(food: FoodItem, weight_g: float) -> dict:
     }
 
 
-def get_todays_logged_macros(db: Session, patient_id: uuid.UUID) -> tuple[float, float]:
+def get_todays_logged_carbs(db: Session, patient_id: uuid.UUID) -> float:
     """
     Sums estimated_carbs across every meal already logged today for
     this patient (local-server-time day boundary — fine for a
@@ -50,15 +50,10 @@ def get_todays_logged_macros(db: Session, patient_id: uuid.UUID) -> tuple[float,
         .filter(MealLog.patient_id == patient_id, MealLog.timestamp >= start_of_day)
         .all()
     )
-    return (
-        sum(meal.estimated_carbs or 0 for meal in todays_meals),
-        sum(meal.estimated_protein or 0 for meal in todays_meals),
-    )
+    return sum(meal.estimated_carbs or 0 for meal in todays_meals)
 
 
-def evaluate_target_status(
-    db: Session, patient_id: uuid.UUID, new_meal_carbs: float, new_meal_protein: float
-) -> str | None:
+def evaluate_target_status(db: Session, patient_id: uuid.UUID, new_meal_carbs: float) -> str | None:
     """
     Returns "WITHIN_TARGET" or "ABOVE_TARGET" for this meal's carbs
     added on top of everything already logged today, compared against
@@ -73,16 +68,10 @@ def evaluate_target_status(
         return None
 
     daily_carb_target = plan.macro_targets.get("carbs_g")
-    daily_protein_target = plan.macro_targets.get("protein_g")
-    if daily_carb_target is None or daily_protein_target is None:
+    if daily_carb_target is None:
         return None
 
-    already_logged_carbs, already_logged_protein = get_todays_logged_macros(db, patient_id)
-    projected_carbs = already_logged_carbs + new_meal_carbs
-    projected_protein = already_logged_protein + new_meal_protein
+    already_logged = get_todays_logged_carbs(db, patient_id)
+    projected_total = already_logged + new_meal_carbs
 
-    return (
-        "WITHIN_TARGET"
-        if projected_carbs <= daily_carb_target and projected_protein <= daily_protein_target
-        else "ABOVE_TARGET"
-    )
+    return "WITHIN_TARGET" if projected_total <= daily_carb_target else "ABOVE_TARGET"

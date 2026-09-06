@@ -26,13 +26,9 @@ FOODS = [
 ]
 
 
-def seed_food_items(only_if_empty: bool = False) -> bool:
-    """Seed the prototype catalogue, optionally preserving an existing one."""
+def run():
     db = SessionLocal()
     try:
-        if only_if_empty and db.query(FoodItem.id).first() is not None:
-            return False
-
         for name, carbs, protein, calories in FOODS:
             existing = db.query(FoodItem).filter(FoodItem.name == name).first()
             if existing:
@@ -48,13 +44,8 @@ def seed_food_items(only_if_empty: bool = False) -> bool:
                 ))
         db.commit()
         print(f"Seeded {len(FOODS)} food items.")
-        return True
     finally:
         db.close()
-
-
-def run():
-    seed_food_items()
 
 
 if __name__ == "__main__":

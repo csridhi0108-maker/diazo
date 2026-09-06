@@ -15,11 +15,10 @@ from app.api import caregiver_dashboard
 # Import every model so Base.metadata knows about all tables before
 # create_all runs. Without these imports, SQLAlchemy has no way of
 # knowing these tables exist yet, even though Base is shared.
-from app.models import user, patient_profile, caregiver_link, meal_log, glucose_log, activity_log, ai_plan, recommendation, notification, report, meal_weight_reading, food_item, scale_status  # noqa: F401
+from app.models import user, patient_profile, caregiver_link, meal_log, glucose_log, activity_log, ai_plan, recommendation, notification, report, meal_weight_reading, food_item  # noqa: F401
 from app.api import auth, patients, logs, plans, ml, caregivers, notifications_ws, dashboard, admin, reports, hardware, glucose_logs, nutrition
 from app.core.ws_manager import ws_router
 from app.scheduler.jobs import start_scheduler
-from scripts.seed_food_items import seed_food_items
 
 app = FastAPI(
     title="DIAZO API",
@@ -67,8 +66,8 @@ def on_startup():
     the only way tables change, so this call can be removed or left
     as a harmless no-op (create_all skips tables that already exist).
     """
-    Base.metadata.create_all(bind=engine)
-    seed_food_items(only_if_empty=True)
+    if settings.ENVIRONMENT == "development":
+        Base.metadata.create_all(bind=engine)
 
     start_scheduler()
 

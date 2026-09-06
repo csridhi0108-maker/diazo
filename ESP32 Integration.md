@@ -27,13 +27,13 @@ The `X-Device-Key` header is required — requests without it (or with the wrong
 {
   "patient_id": "265f7e92-63fd-49e1-a933-65a2fa479d3e",
   "device_id": "scale-01",
-  "weight_g": 184.5
+  "weight_grams": 184.5
 }
 ```
 
 - `patient_id` — a fixed UUID identifying which patient this scale belongs to. Hardcode this into the firmware — every reading from this specific scale sends the same `patient_id`.
 - `device_id` — any short identifier for the physical device itself (e.g. `"scale-01"`). Useful if we ever have multiple scales; can be a fixed string in firmware.
-- `weight_g` — the measured weight in **grams** (not kg — food portions are small, grams keeps this precise). This is the canonical field name used by the firmware and backend.
+- `weight_grams` — the measured weight in **grams** (not kg — food portions are small, grams keeps this precise).
 
 ---
 
@@ -45,23 +45,11 @@ Once we receive the reading, the backend:
 
 If the patient is actively logging a meal, they'll see the live weight appear on screen and can confirm/save it as that meal's portion — or ignore it and type the amount manually instead. Both paths are supported; the scale is optional, not required.
 
-The `201` response contains the stored reading, for example:
+You'll get back:
 ```json
-{
-  "id": "...",
-  "patient_id": "265f7e92-63fd-49e1-a933-65a2fa479d3e",
-  "device_id": "scale-01",
-  "weight_g": 184.5
-}
+{ "status": "received" }
 ```
-
-After the patient selects food and logs the measured meal, poll the LED endpoint with the same `X-Device-Key`:
-
-```text
-GET /api/v1/hardware/scale-status/scale-01
-```
-
-It returns `"GREEN"` for `WITHIN_TARGET`, `"RED"` for `ABOVE_TARGET`, or `"PENDING"` while the patient has not yet completed food selection. Keep both LEDs off for `PENDING`.
+HTTP status code `201`.
 
 ---
 
@@ -95,7 +83,7 @@ void sendWeightReading(float weightGrams) {
 
   String payload = String("{\"patient_id\":\"") + patientId +
                     "\",\"device_id\":\"" + deviceId +
-                    "\",\"weight_g\":" + String(weightGrams, 1) + "}";
+                    "\",\"weight_grams\":" + String(weightGrams, 1) + "}";
 
   int responseCode = http.POST(payload);
   // responseCode should be 201 on success, 401 if the device key is wrong
@@ -116,7 +104,7 @@ Example curl:
 curl -X POST https://<backend-url>/api/v1/hardware/meal-weight-readings \
   -H "Content-Type: application/json" \
   -H "X-Device-Key: <the shared secret>" \
-  -d '{"patient_id":"265f7e92-63fd-49e1-a933-65a2fa479d3e","device_id":"scale-01","weight_g":184.5}'
+  -d '{"patient_id":"265f7e92-63fd-49e1-a933-65a2fa479d3e","device_id":"scale-01","weight_grams":184.5}'
 ```
 
 ---

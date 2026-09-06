@@ -1,6 +1,5 @@
 """Contracts for ESP32 meal-scale ingestion."""
 
-import datetime
 import uuid
 
 from pydantic import BaseModel, Field
@@ -23,10 +22,3 @@ class MealWeightReadingOut(BaseModel):
     class Config:
         from_attributes = True
 
-
-class ScaleStatusOut(BaseModel):
-    """Instruction consumed by the ESP32 to choose its LED colour."""
-
-    device_id: str
-    status: str  # "PENDING" | "GREEN" | "RED"
-    updated_at: datetime.datetime | None = None

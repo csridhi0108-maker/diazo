@@ -58,9 +58,7 @@ def calculate_meal_nutrition(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Food not found")
 
     nutrition = calculate_nutrition(food, payload.weight_g)
-    status_result = evaluate_target_status(
-        db, current_user.id, nutrition["carbs_g"], nutrition["protein_g"]
-    )
+    status_result = evaluate_target_status(db, current_user.id, nutrition["carbs_g"])
 
     return NutritionCalculateOut(
         food=food.name,

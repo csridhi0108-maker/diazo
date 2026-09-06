@@ -6,7 +6,7 @@ they're small and always touched together in api/logs.py.
 import uuid
 import datetime
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 
 # ---------- Meal ----------
@@ -26,16 +26,6 @@ class MealLogCreate(BaseModel):
     # existing behavior is unchanged.
     food_id: uuid.UUID | None = None
     weight_g: float | None = Field(default=None, gt=0, le=5000)
-    scale_device_id: str | None = Field(default=None, min_length=3, max_length=100)
-
-    @model_validator(mode="after")
-    def validate_scale_fields(self):
-        """A measured food needs both inputs; manual logs need neither."""
-        if (self.food_id is None) != (self.weight_g is None):
-            raise ValueError("food_id and weight_g must be provided together")
-        if self.scale_device_id is not None and self.food_id is None:
-            raise ValueError("scale_device_id requires food_id and weight_g")
-        return self
 
 
 class MealLogOut(BaseModel):

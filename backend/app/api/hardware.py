@@ -9,9 +9,8 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.ws_manager import manager
 from app.models.meal_weight_reading import MealWeightReading
-from app.models.scale_status import ScaleStatus
 from app.models.user import User, UserRole
-from app.schemas.hardware import MealWeightReadingIn, MealWeightReadingOut, ScaleStatusOut
+from app.schemas.hardware import MealWeightReadingIn, MealWeightReadingOut
 
 router = APIRouter(prefix="/api/v1/hardware", tags=["hardware"])
 
@@ -43,13 +42,6 @@ async def ingest_meal_weight_reading(payload: MealWeightReadingIn, db: Session =
 
     reading = MealWeightReading(**payload.model_dump())
     db.add(reading)
-    # A new measurement must not keep showing the result of the previous meal.
-    device_status = db.get(ScaleStatus, payload.device_id)
-    if device_status is None:
-        db.add(ScaleStatus(device_id=payload.device_id, patient_id=payload.patient_id, status="PENDING"))
-    else:
-        device_status.patient_id = payload.patient_id
-        device_status.status = "PENDING"
     db.commit()
     db.refresh(reading)
 
@@ -64,20 +56,3 @@ async def ingest_meal_weight_reading(payload: MealWeightReadingIn, db: Session =
         },
     )
     return reading
-
-
-@router.get(
-    "/scale-status/{device_id}",
-    response_model=ScaleStatusOut,
-    dependencies=[Depends(verify_device_key)],
-)
-def get_scale_status(device_id: str, db: Session = Depends(get_db)):
-    """Return the latest LED command for an ESP32 scale.
-
-    ``PENDING`` means a weight was received but the patient has not yet
-    selected/logged a food, so neither LED should be lit.
-    """
-    device_status = db.get(ScaleStatus, device_id)
-    if device_status is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scale not found")
-    return device_status
