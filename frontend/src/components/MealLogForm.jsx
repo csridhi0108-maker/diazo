@@ -75,6 +75,7 @@ function MealLogForm({ onLogged, scaleReading }) {
             meal_type: mealType,
             food_id: foodId,
             weight_g: scaleReading.weight_g,
+            device_id: scaleReading.device_id,
           }
         : {
             meal_type: mealType,
